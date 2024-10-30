@@ -1,0 +1,43 @@
+# production
+packages/nearyjs*/index.d.ts
+packages/nearyjs*/nearyjs*
+packages/nearyjs*/components
+
+packages/nearyjs*/cjs/index.d.ts
+packages/nearyjs*/cjs/nearyjs*
+packages/nearyjs*/cjs/components
+
+packages/nearyjs*/esm/index.d.ts
+packages/nearyjs*/esm/nearyjs*
+packages/nearyjs*/esm/components
+
+public
+static
+docs
+
+# yarn
+.yarn/*
+!.yarn/cache
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# dependencies
+node_modules
+.pnp
+.pnp.js
+
+# testing
+coverage
+
+# misc
+.cache
+.DS_Store
+package-lock.json
+yarn.lock

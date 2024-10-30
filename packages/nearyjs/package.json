@@ -1,0 +1,64 @@
+{
+	"name": "nearyjs",
+	"version": "1.0.0",
+	"description": "A javascript tool to detect cursor proximity for one or several elements",
+	"main": "nearyjs.umd.js",
+	"author": "peacepostman",
+	"license": "MIT",
+	"private": false,
+	"devDependencies": {
+		"@types/jest": "^29.5.6",
+		"@typescript-eslint/eslint-plugin": "^6.9.0",
+		"@typescript-eslint/parser": "^6.9.0",
+		"eslint": "^8.52.0",
+		"eslint-config-prettier": "^9.0.0",
+		"eslint-plugin-prettier": "^4.0.0",
+		"jest": "^29.5.0",
+		"jest-environment-jsdom": "^29.5.0",
+		"prettier": "2.8.8",
+		"rollup": "^4.22.4",
+		"ts-jest": "^29.1.1",
+		"typescript": "^5.2.2"
+	},
+	"scripts": {
+		"test": "jest --config jest.config.js",
+		"build": "rollup --bundleConfigAsCjs -c",
+		"start": "rollup --bundleConfigAsCjs -c --watch --environment BUILD:development",
+		"eslint:report": "eslint \"src/**/*.{js,tsx,ts}\""
+	},
+	"keywords": [
+		"neary",
+		"cursor",
+		"lightweight",
+		"proximity",
+		"near",
+		"javascript",
+		"typescript",
+		"react",
+		"react-hook"
+	],
+	"files": [
+		"nearyjs*",
+		"components/**/*",
+		"index.d.ts",
+		"esm/**/*",
+		"cjs/**/*"
+	],
+	"sideEffects": false,
+	"unpkg": "nearyjs.umd.js",
+	"module": "./esm/nearyjs.esm.js",
+	"types": "index.d.ts",
+	"exports": {
+		"./package.json": "./package.json",
+		".": {
+			"import": {
+				"types": "./esm/index.d.ts",
+				"default": "./esm/nearyjs.esm.js"
+			},
+			"require": {
+				"types": "./cjs/index.d.ts",
+				"default": "./cjs/nearyjs.cjs.js"
+			}
+		}
+	}
+}

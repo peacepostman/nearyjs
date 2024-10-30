@@ -1,0 +1,41 @@
+{
+  "name": "nearyjs-monorepo",
+  "version": "1.0.0",
+  "description": "A javascript tool to detect cursor proximity for one or several elements",
+  "main": "index.js",
+  "author": "peacepostman",
+  "license": "MIT",
+  "private": true,
+  "workspaces": [
+    "packages/nearyjs",
+    "packages/nearyjs-react",
+    "playgrounds/nearyjs-playground-react",
+    "playgrounds/nearyjs-playground-vanilla"
+  ],
+  "scripts": {
+    "eslint:report": "yarn workspaces foreach -v --exclude \"{nearyjs-monorepo,nearyjs-playground-vanilla,nearyjs-playground-react}\" run eslint:report",
+    "prettier:report": "prettier \"**/*.{js,jsx,tsx,ts,scss,json}\" --check",
+    "lint": "npm-run-all prettier:report eslint:report",
+    "format": "prettier \"**/*.{js,jsx,tsx,ts,scss,json}\" --write",
+    "test": "yarn workspaces foreach -v --exclude \"{nearyjs-monorepo,nearyjs-playground-vanilla,nearyjs-playground-react}\" run test",
+    "watch:package-vanilla": "yarn workspace nearyjs run start",
+    "watch:package-react": "yarn workspace nearyjs-react run start",
+    "watch:playground-vanilla": "yarn workspace nearyjs-playground-vanilla run dev",
+    "watch:playground-react": "yarn workspace nearyjs-playground-react run dev",
+    "start": "yarn workspace embla-carousel-docs run start",
+    "start:vanilla": "npm-run-all --parallel watch:package-vanilla watch:playground-vanilla",
+    "start:react": "npm-run-all --parallel watch:package-vanilla watch:package-react watch:playground-react"
+  },
+  "devDependencies": {
+    "@babel/core": "7.23.2",
+    "@rollup/plugin-babel": "^6.0.4",
+    "@rollup/plugin-node-resolve": "15.2.3",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^11.1.5",
+    "husky": "^4.3.8",
+    "npm-run-all": "^4.1.5",
+    "prettier": "2.8.8",
+    "rollup": "^4.22.4",
+    "typescript": "^5.2.2"
+  }
+}

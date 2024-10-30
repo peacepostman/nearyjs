@@ -1,0 +1,15 @@
+{
+  "name": "nearyjs-react",
+  "version": "1.0.0",
+  "description": "A javascript tool to detect cursor proximity for one or several elements",
+  "main": "index.js",
+  "author": "peacepostman",
+  "license": "MIT",
+  "private": false,
+  "dependencies": {
+    "nearyjs": "^1.0.0"
+  },
+  "peerDependencies": {
+    "react": "^16.8.0 || ^17.0.1 || ^18.0.0"
+  }
+}
