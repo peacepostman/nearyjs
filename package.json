@@ -22,8 +22,7 @@
     "watch:package-react": "yarn workspace nearyjs-react run start",
     "watch:playground-vanilla": "yarn workspace nearyjs-playground-vanilla run dev",
     "watch:playground-react": "yarn workspace nearyjs-playground-react run dev",
-    "start": "yarn workspace embla-carousel-docs run start",
-    "start:vanilla": "npm-run-all --parallel watch:package-vanilla watch:playground-vanilla",
+    "start": "npm-run-all --parallel watch:package-vanilla watch:playground-vanilla",
     "start:react": "npm-run-all --parallel watch:package-vanilla watch:package-react watch:playground-react"
   },
   "devDependencies": {
