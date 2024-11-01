@@ -12,6 +12,8 @@ import {
   createNodeNextSupport,
 } from "../../rollup.config";
 
+console.log('INNER', CONFIG_TYPESCRIPT)
+
 export default [
   {
     input: "src/index.ts",

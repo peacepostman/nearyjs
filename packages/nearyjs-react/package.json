@@ -5,7 +5,6 @@
   "main": "index.js",
   "author": "peacepostman",
   "license": "MIT",
-  "private": false,
   "dependencies": {
     "nearyjs": "^1.0.0"
   },
