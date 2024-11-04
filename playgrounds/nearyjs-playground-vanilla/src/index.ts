@@ -35,3 +35,22 @@ const nearyInstance = Neary({
     }
   }
 })
+
+setTimeout(() => {
+  nearyInstance.reboot({
+    targets: {
+      target: '#area-2',
+      distance: {
+        x: 20,
+        y: 80
+      },
+      onProximity({ data, uid, target }) {
+        target.innerHTML = `<span class="text-sm text-slate-700 absolute right-2 bottom-2">${data}%</span>`
+      }
+    },
+    options: {
+      format: 'percentage',
+      debug: true
+    }
+  })
+}, 5000)

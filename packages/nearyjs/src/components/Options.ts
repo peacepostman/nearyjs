@@ -100,9 +100,12 @@ export function areTargetsEqual(
 ): boolean {
   if (typeof targetsA !== typeof targetsB) return false
   if (targetsA && targetsB && targetsA.length !== targetsB.length) return false
-
-  return targetsA.every((targetsA, index) => {
-    const targetB = targetsB[index]
-    return areOptionsEqual(targetsA, targetB)
-  })
+  if ((!targetsA && targetsB) || (targetsA && !targetsB)) return false
+  if (targetsA && targetsB) {
+    return targetsA.every((targetsA, index) => {
+      const targetB = targetsB[index]
+      return areOptionsEqual(targetsA, targetB)
+    })
+  }
+  return false
 }

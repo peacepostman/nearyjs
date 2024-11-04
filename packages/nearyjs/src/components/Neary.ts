@@ -1,25 +1,20 @@
-import {
-  throttle,
-  areEquals,
-  setTarget,
-  setDistance,
-  setProximity,
-  generateUID,
-  setTargets
-} from './Utils'
+import { throttle, areEquals } from './Utils'
 
+import type { NearyConfigTypePartial } from './Options'
 import {
   areOptionsEqual,
   areTargetsEqual,
   defaultOptions,
-  mergeOptions,
-  NearyConfigType,
-  NearyConfigTypePartial
+  mergeOptions
 } from './Options'
 
-import { NearyElementDebugType, setDebug, setDebugActive } from './Debug'
+import type { NearyTargetsType } from './Targets'
+import { prepareTargets, setTargets } from './Targets'
 
-export type NearyTargetDistanceType = number | { x: number; y: number }
+import type { NearyElementDebugType } from './Debug'
+import { setDebug, setDebugActive } from './Debug'
+import { setProximity } from './Proximity'
+
 export type NearySettedElementType = {
   target: Element | undefined
   uid: string
@@ -28,7 +23,7 @@ export type NearySettedElementType = {
     y: number
   }
 }[]
-export type NearyTargetType = Element | string
+
 export type NearyResponseType =
   | {
       data: boolean | number
@@ -37,27 +32,15 @@ export type NearyResponseType =
     }
   | undefined
 
-export type NearyTargetsType = {
-  /**
-   * A node ref
-   */
-  target: NearyTargetType
-  /**
-   * Distance in pixel around element, default is 0
-   */
-  distance?: NearyTargetDistanceType
-  /**
-   * Callback function to call when element is in proximity
-   */
-  onProximity?: (response: NearyResponseType) => void
-}
-
 export type NearyInstancetype = {
   kill: () => void
-  reboot: (
-    newTargets?: NearyTargetsType | NearyTargetsType[],
-    newOptions?: NearyConfigType
-  ) => void
+  reboot: ({
+    targets,
+    options
+  }: {
+    targets: NearyTargetsType | NearyTargetsType[] | undefined
+    options?: NearyConfigTypePartial
+  }) => void
   getElements: () => {
     targets: NearySettedElementType
     debug: NearyElementDebugType
@@ -79,7 +62,6 @@ function Neary({
 }): NearyInstancetype {
   let baseOptions = mergeOptions(defaultOptions, options)
   let previousData: NearyResponseType[] = []
-  let storedTargets: NearyTargetsType | NearyTargetsType[] | undefined = targets
   let elements: NearyTargetsType[] | undefined = undefined
   let elementsSetted: NearySettedElementType = []
   let elementsDebugTarget: NearyElementDebugType = undefined
@@ -88,22 +70,9 @@ function Neary({
    * Build targets once
    */
   const buildTargets = () => {
-    elements = setTargets(targets, baseOptions)
-    console.log('elements', { elements, targets, baseOptions })
+    elements = prepareTargets(targets, baseOptions)
     if (elements) {
-      elementsSetted = elements.map((element) => {
-        const target = setTarget(element.target)
-        const uid = generateUID()
-        if (target) {
-          target.setAttribute('data-neary', '')
-          target.setAttribute('data-neary-uid', uid)
-        }
-        return {
-          target,
-          uid,
-          distance: setDistance(element.distance)
-        }
-      })
+      elementsSetted = setTargets(elements)
       if (baseOptions.debug) {
         elementsDebugTarget = setDebug(elementsSetted)
       }
@@ -115,7 +84,7 @@ function Neary({
    * @param event: MouseEvent
    */
   const onMoveThrottled = throttle((event: MouseEvent) => {
-    const { pageX: mouseX, pageY: mouseY } = event
+    const { pageX: x, pageY: y } = event
     const { format, debug, onProximity } = baseOptions
     const newData: NearyResponseType[] = []
     if (elements && elementsSetted && elementsSetted.length > 0) {
@@ -124,23 +93,27 @@ function Neary({
         const { target, distance, uid } = elementsSetted[index]
 
         if (target) {
-          const { proximity, emit } = setProximity(format, target, distance, {
-            x: mouseX,
-            y: mouseY
-          })
+          const { proximity, emit: data } = setProximity(
+            format,
+            target,
+            distance,
+            {
+              x,
+              y
+            }
+          )
 
-          target.setAttribute('data-neary-proximity', proximity.toString())
           if (debug) {
             setDebugActive(elementsDebugTarget, index, proximity)
           }
 
           if (element.onProximity) {
-            element.onProximity({ data: emit, uid, target })
+            element.onProximity({ data, uid, target })
           }
           newData.push({
             uid,
             target,
-            data: emit
+            data
           })
         } else {
           newData.push({
@@ -192,19 +165,16 @@ function Neary({
 
   /**
    * Reboot Neary with new targets or options or both
-   * @param newTargets
-   * @param newOptions
    */
-  const reboot = (
-    newTargets?: NearyTargetsType | NearyTargetsType[],
-    newOptions?: NearyConfigType
-  ) => {
-    newTargets = newTargets
-      ? !Array.isArray(newTargets)
-        ? [newTargets]
-        : newTargets
-      : undefined
-    if (newTargets && !areTargetsEqual(newTargets, storedTargets)) {
+  const reboot = ({
+    targets: newTargets,
+    options: newOptions
+  }: {
+    targets?: NearyTargetsType | NearyTargetsType[]
+    options?: NearyConfigTypePartial
+  }) => {
+    newTargets = prepareTargets(newTargets, baseOptions)
+    if (newTargets && !areTargetsEqual(newTargets, elements)) {
       targets = newTargets
     }
     if (newOptions && !areOptionsEqual(newOptions, baseOptions)) {
