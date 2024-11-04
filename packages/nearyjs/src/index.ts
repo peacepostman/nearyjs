@@ -1,2 +1,8 @@
-export { NearyTargetDistanceType, NearyFormatType, NearyTargetType, NearyElementType, NearyConfigType, NearyResponseType } from './components/Neary';
-export { default } from './components/Neary';
+export {
+  NearyTargetDistanceType,
+  NearyTargetType,
+  NearyTargetsType,
+  NearyResponseType
+} from './components/Neary'
+export { NearyFormatType, NearyConfigType } from './components/Options'
+export { default } from './components/Neary'

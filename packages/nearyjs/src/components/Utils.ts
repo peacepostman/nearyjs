@@ -1,21 +1,27 @@
 import {
-  NearyElementType,
-  NearyFormatType,
+  NearyTargetsType,
   NearyResponseType,
   NearyTargetDistanceType,
   NearyTargetType
 } from './Neary'
 
+import { NearyConfigType, NearyFormatType } from './Options'
+
+var idCounter = 0
+
 /**
  *
- * Compare two arrays of numbers
+ * Compare two arrays of values
  *
- * @param a1 Array of numbers
- * @param a2 Array of numbers
+ * @param a1 Array of numbers or boolean
+ * @param a2 Array of numbers or boolean
  * @returns boolean
  */
-function areEquals(a1: NearyResponseType, a2: NearyResponseType) {
-  return JSON.stringify(a1) == JSON.stringify(a2)
+export function areEquals(
+  a1: NearyResponseType[],
+  a2: NearyResponseType[]
+): boolean {
+  return JSON.stringify(a1) === JSON.stringify(a2)
 }
 
 /**
@@ -24,7 +30,7 @@ function areEquals(a1: NearyResponseType, a2: NearyResponseType) {
  * @param wait
  * @returns
  */
-function throttle(fn: Function, wait: number) {
+export function throttle(fn: Function, wait: number) {
   let inThrottle: boolean,
     lastFn: ReturnType<typeof setTimeout>,
     lastTime: number
@@ -47,12 +53,44 @@ function throttle(fn: Function, wait: number) {
   }
 }
 
+export function generateUID() {
+  var id = ++idCounter
+  return String('neary_' + id)
+}
+
+export function setTargets(
+  targets: NearyTargetsType[] | NearyTargetsType | undefined,
+  baseOptions: NearyConfigType
+): NearyTargetsType[] | undefined {
+  function setElementFallback() {
+    const nodes = document.querySelectorAll('[data-neary]')
+    if (nodes && nodes.length > 0) {
+      return Array.from(nodes).map((node) => {
+        const distance = baseOptions.defaults?.distance || { x: 0, y: 0 }
+        const onProximity = baseOptions.defaults?.onProximity || undefined
+        return {
+          target: node as Element,
+          distance,
+          onProximity
+        }
+      })
+    }
+    return undefined
+  }
+
+  return targets
+    ? !Array.isArray(targets)
+      ? [targets]
+      : targets
+    : setElementFallback()
+}
+
 /**
  * Return Element from Neary elements parameter
  * @param target
  * @returns
  */
-function setTarget(target?: NearyTargetType) {
+export function setTarget(target?: NearyTargetType): Element | undefined {
   if (typeof target === 'undefined') {
     throw new Error('NearyJS - Target is required')
   }
@@ -74,7 +112,10 @@ function setTarget(target?: NearyTargetType) {
  * @param distance
  * @returns
  */
-function setDistance(distance?: NearyTargetDistanceType) {
+export function setDistance(distance?: NearyTargetDistanceType): {
+  x: number
+  y: number
+} {
   const defaultDistance = { x: 0, y: 0 }
   if (distance !== undefined) {
     if (typeof distance === 'number') {
@@ -95,139 +136,72 @@ function setDistance(distance?: NearyTargetDistanceType) {
 }
 
 /**
- * Add debugs overlay on elements
- * @param elements
- */
-function setDebug(elements: NearyElementType[]) {
-  type styleType = Partial<CSSStyleDeclaration> & { [propName: string]: string }
-  function css(element: HTMLElement, style: styleType) {
-    Object.keys(style).forEach((styleKey: string) => {
-      ;(element.style as styleType)[styleKey] = style[styleKey]
-    })
-  }
-
-  if (elements.length > 0) {
-    for (let index = 0; index < elements.length; index++) {
-      const element = elements[index]
-      const target = setTarget(element.target) as HTMLElement
-      const distance = setDistance(element.distance)
-      if (target) {
-        const { width, height, x, y } = target.getBoundingClientRect()
-        const copy = document.createElement('div')
-        copy.setAttribute('data-neary-debug-id', index.toString())
-        css(copy, {
-          position: 'absolute',
-          top: `${y - distance.y}px`,
-          left: `${x - distance.x}px`,
-          width: `${width + distance.x * 2}px`,
-          height: `${height + distance.y * 2}px`,
-          borderWidth: '1px',
-          borderStyle: 'dashed',
-          borderColor: 'rgba(239,66,66,.8)',
-          pointerEvents: 'none',
-          boxSizing: 'border-box',
-          zIndex: '99999999999999'
-        })
-        document.body.appendChild(copy)
-      }
-    }
-  }
-}
-
-/**
- * Retrun appropriate proximity value according to expected output format
+ * Return appropriate proximity value according to expected output format
  * @param format
- * @param value
- * @param proximityData
+ * @param target
+ * @param distance
+ * @param cursor
  * @returns
  */
-function setProximity(
+export function setProximity(
   format: NearyFormatType,
-  value: boolean,
-  proximityData: {
-    mouseX: number
-    mouseY: number
-    left: number
-    top: number
-    right: number
-    bottom: number
-    width: number
-    height: number
-    windowW: number
-    windowH: number
-  }
+  target: Element,
+  distance: { x: number; y: number },
+  cursor: { x: number; y: number }
 ) {
-  if (typeof value === 'boolean') {
-    if (format === 'boolean') {
-      return value
-    }
-
-    /**
-     * Return percentage value
-     * @param partial
-     * @param total
-     * @returns
-     */
-    function percentage(partial: number, total: number) {
-      const percent = (100 * partial) / total
-      return percent > 100 ? 100 : Number(percent.toFixed(2))
-    }
-
-    const { left, top, right, bottom } = {
-      left:
-        proximityData.mouseY > proximityData.top &&
-        proximityData.mouseY < proximityData.bottom &&
-        proximityData.mouseX < proximityData.right - proximityData.width / 2
-          ? percentage(
-              proximityData.mouseX,
-              proximityData.windowW - proximityData.right
-            )
-          : 0,
-      top:
-        proximityData.mouseY < proximityData.top
-          ? percentage(proximityData.mouseY, proximityData.top)
-          : 0,
-      right:
-        proximityData.mouseY > proximityData.top &&
-        proximityData.mouseY < proximityData.bottom &&
-        proximityData.mouseX > proximityData.left + proximityData.width / 2
-          ? percentage(
-              proximityData.windowW - proximityData.mouseX,
-              proximityData.windowW - proximityData.right
-            )
-          : 0,
-      bottom:
-        proximityData.mouseY > proximityData.bottom
-          ? percentage(
-              proximityData.windowH - proximityData.mouseY,
-              proximityData.windowH - proximityData.bottom
-            )
-          : 0
-    }
-    console.log('setProximity', { left, top, right, bottom })
-    return Math.max(left, top, right, bottom)
+  const rect = target.getBoundingClientRect()
+  const { left, top, right, bottom } = {
+    top: rect.top - distance.y,
+    right: rect.right + distance.x,
+    bottom: rect.bottom + distance.y,
+    left: rect.left - distance.x
   }
-  return setDefaultProximity(format)
-}
+  const { x: mouseX, y: mouseY } = cursor
+  const windowW = window.innerWidth
+  const windowH = window.innerHeight
 
-/**
- * Return default proximity value according to expected output format
- * @param format
- * @returns
- */
-function setDefaultProximity(format: NearyFormatType) {
+  const proximity =
+    mouseX >= left + window.scrollX &&
+    mouseX <= right + window.scrollX &&
+    mouseY >= top + window.scrollY &&
+    mouseY <= bottom + window.scrollY
+
   if (format === 'boolean') {
-    return false
+    return {
+      proximity,
+      emit: proximity
+    }
   }
-  return 0
-}
 
-export {
-  throttle,
-  setDebug,
-  areEquals,
-  setTarget,
-  setDistance,
-  setProximity,
-  setDefaultProximity
+  /**
+   * Return percentage value
+   * @param partial
+   * @param total
+   * @returns
+   */
+  function percentage(partial: number, total: number) {
+    const percent = (100 * partial) / total
+    return percent > 100 ? 100 : Number(percent.toFixed(2))
+  }
+
+  const { leftPercent, topPercent, rightPercent, bottomPercent } = {
+    leftPercent:
+      mouseY > top && mouseY < bottom && mouseX < left + rect.width / 2
+        ? percentage(mouseX, left)
+        : 0,
+    topPercent: mouseY < top ? percentage(mouseY, top) : 0,
+    rightPercent:
+      mouseY > top && mouseY < bottom && mouseX > left + rect.width / 2
+        ? percentage(windowW - mouseX, windowW - right)
+        : 0,
+    bottomPercent:
+      mouseY > bottom ? percentage(windowH - mouseY, windowH - bottom) : 0
+  }
+
+  const percent = Math.max(leftPercent, topPercent, rightPercent, bottomPercent)
+
+  return {
+    proximity,
+    emit: percent
+  }
 }

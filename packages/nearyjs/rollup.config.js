@@ -1,4 +1,4 @@
-import packageJson from "./package.json";
+import packageJson from './package.json'
 import {
   FOLDERS,
   CONFIG_BABEL,
@@ -9,27 +9,25 @@ import {
   terser,
   createBuildPath,
   kebabToPascalCase,
-  createNodeNextSupport,
-} from "../../rollup.config";
-
-console.log('INNER', CONFIG_TYPESCRIPT)
+  createNodeNextSupport
+} from '../../rollup.config'
 
 export default [
   {
-    input: "src/index.ts",
+    input: 'src/index.ts',
     output: [
       {
         file: createBuildPath(packageJson, FOLDERS.CJS),
         format: FOLDERS.CJS,
         strict: true,
         sourcemap: true,
-        exports: "auto",
+        exports: 'auto'
       },
       {
         file: createBuildPath(packageJson, FOLDERS.ESM),
         format: FOLDERS.ESM,
         strict: true,
-        sourcemap: true,
+        sourcemap: true
       },
       {
         file: createBuildPath(packageJson, FOLDERS.UMD),
@@ -37,14 +35,14 @@ export default [
         strict: true,
         sourcemap: false,
         name: kebabToPascalCase(packageJson.name),
-        plugins: [terser()],
-      },
+        plugins: [terser()]
+      }
     ],
     plugins: [
       resolve(),
       typescript(CONFIG_TYPESCRIPT),
       babel(CONFIG_BABEL),
-      createNodeNextSupport(),
-    ],
-  },
-];
+      createNodeNextSupport()
+    ]
+  }
+]

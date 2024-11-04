@@ -1,20 +1,43 @@
 import {
   throttle,
   areEquals,
-  setDebug,
   setTarget,
   setDistance,
   setProximity,
-  setDefaultProximity
+  generateUID,
+  setTargets
 } from './Utils'
 
-export type NearyTargetDistanceType = number | { x: number; y: number }
-export type NearyTargetType = Element | string
-export type NearyFormatType = 'boolean' | 'percentage'
-export type NearyProximityType = boolean | number
-export type NearyResponseType = NearyProximityType[]
+import {
+  areOptionsEqual,
+  areTargetsEqual,
+  defaultOptions,
+  mergeOptions,
+  NearyConfigType,
+  NearyConfigTypePartial
+} from './Options'
 
-export type NearyElementType = {
+import { NearyElementDebugType, setDebug, setDebugActive } from './Debug'
+
+export type NearyTargetDistanceType = number | { x: number; y: number }
+export type NearySettedElementType = {
+  target: Element | undefined
+  uid: string
+  distance: {
+    x: number
+    y: number
+  }
+}[]
+export type NearyTargetType = Element | string
+export type NearyResponseType =
+  | {
+      data: boolean | number
+      uid: string
+      target: Element | undefined
+    }
+  | undefined
+
+export type NearyTargetsType = {
   /**
    * A node ref
    */
@@ -26,113 +49,105 @@ export type NearyElementType = {
   /**
    * Callback function to call when element is in proximity
    */
-  onProximity?: (data: NearyProximityType, el: Element) => void
+  onProximity?: (response: NearyResponseType) => void
 }
-export type NearyConfigType = {
+
+export type NearyInstancetype = {
+  kill: () => void
+  reboot: (
+    newTargets?: NearyTargetsType | NearyTargetsType[],
+    newOptions?: NearyConfigType
+  ) => void
+  getElements: () => {
+    targets: NearySettedElementType
+    debug: NearyElementDebugType
+  }
+}
+
+function Neary({
+  targets,
+  options
+}: {
   /**
    * An array of element on which we must detect proximity
    */
-  elements: NearyElementType | NearyElementType[]
+  targets: NearyTargetsType | NearyTargetsType[] | undefined
   /**
-   * Boolean to enable listener, default is true
+   * Neary options
    */
-  enabled?: boolean
+  options?: NearyConfigTypePartial
+}): NearyInstancetype {
+  let baseOptions = mergeOptions(defaultOptions, options)
+  let previousData: NearyResponseType[] = []
+  let storedTargets: NearyTargetsType | NearyTargetsType[] | undefined = targets
+  let elements: NearyTargetsType[] | undefined = undefined
+  let elementsSetted: NearySettedElementType = []
+  let elementsDebugTarget: NearyElementDebugType = undefined
+
   /**
-   * Enable debug mode
+   * Build targets once
    */
-  debug?: boolean
-  /**
-   * Determine the return type of the function
-   * Default is boolean
-   *
-   * Boolean: return boolean value for elements. True means in proximity and false means not in proximity
-   * Array: return array of numeric values between 0 and 1 for elements. Zero means not in proximity and 1 means in proximity
-   */
-  format?: NearyFormatType
-  /**
-   * Callback function to call when elements proximity state change
-   * This function will be executed only if the proximity state of the elements has changed
-   */
-  onProximity?: (values: NearyResponseType) => void
-}
-
-function Neary(options: NearyConfigType) {
-  if (typeof options.enabled === 'undefined') {
-    options.enabled = true
-  }
-  if (typeof options.format === 'undefined') {
-    options.format = 'boolean'
-  }
-  if (!Array.isArray(options.elements)) {
-    options.elements = [options.elements]
-  }
-
-  const { enabled, elements, format, onProximity } = options
-  const elementsSetted = elements.map((element) => ({
-    target: setTarget(element.target),
-    distance: setDistance(element.distance)
-  }))
-
-  let previousData: NearyResponseType = []
-
-  let debugTargets: NodeListOf<HTMLElement> | undefined = undefined
-  if (options.debug) {
-    setDebug(elements)
-    debugTargets = document.querySelectorAll('[data-neary-debug-id]')
+  const buildTargets = () => {
+    elements = setTargets(targets, baseOptions)
+    console.log('elements', { elements, targets, baseOptions })
+    if (elements) {
+      elementsSetted = elements.map((element) => {
+        const target = setTarget(element.target)
+        const uid = generateUID()
+        if (target) {
+          target.setAttribute('data-neary', '')
+          target.setAttribute('data-neary-uid', uid)
+        }
+        return {
+          target,
+          uid,
+          distance: setDistance(element.distance)
+        }
+      })
+      if (baseOptions.debug) {
+        elementsDebugTarget = setDebug(elementsSetted)
+      }
+    }
   }
 
-  function proximity(event: MouseEvent) {
+  /**
+   * On mouse move action
+   * @param event: MouseEvent
+   */
+  const onMoveThrottled = throttle((event: MouseEvent) => {
     const { pageX: mouseX, pageY: mouseY } = event
-    const newData: NearyResponseType = []
-
-    if (elementsSetted && elementsSetted.length > 0) {
+    const { format, debug, onProximity } = baseOptions
+    const newData: NearyResponseType[] = []
+    if (elements && elementsSetted && elementsSetted.length > 0) {
       for (let index = 0; index < elements.length; index++) {
         const element = elements[index]
-        const { target, distance } = elementsSetted[index]
+        const { target, distance, uid } = elementsSetted[index]
 
         if (target) {
-          const rect = target.getBoundingClientRect()
-          const { left, top, right, bottom } = {
-            top: rect.top - distance.y,
-            right: rect.right + distance.x,
-            bottom: rect.bottom + distance.y,
-            left: rect.left - distance.x
-          }
-
-          const isInProximity =
-            mouseX >= left + window.scrollX &&
-            mouseX <= right + window.scrollX &&
-            mouseY >= top + window.scrollY &&
-            mouseY <= bottom + window.scrollY
-
-          target.setAttribute('data-neary-proximity', isInProximity.toString())
-          if (options.debug) {
-            if (debugTargets && debugTargets[index]) {
-              debugTargets[index].style.borderColor = isInProximity
-                ? 'rgba(66,239,66,.8)'
-                : 'rgba(239,66,66,.8)'
-            }
-          }
-
-          const emittedValue = setProximity(format, isInProximity, {
-            mouseX,
-            mouseY,
-            left,
-            top,
-            right,
-            bottom,
-            width: rect.width,
-            height: rect.height,
-            windowW: window.innerWidth,
-            windowH: window.innerHeight
+          const { proximity, emit } = setProximity(format, target, distance, {
+            x: mouseX,
+            y: mouseY
           })
 
-          if (element.onProximity) {
-            element.onProximity(emittedValue, target)
+          target.setAttribute('data-neary-proximity', proximity.toString())
+          if (debug) {
+            setDebugActive(elementsDebugTarget, index, proximity)
           }
-          newData.push(emittedValue)
+
+          if (element.onProximity) {
+            element.onProximity({ data: emit, uid, target })
+          }
+          newData.push({
+            uid,
+            target,
+            data: emit
+          })
         } else {
-          newData.push(false)
+          newData.push({
+            uid,
+            target: undefined,
+            data: false
+          })
         }
       }
     }
@@ -145,20 +160,88 @@ function Neary(options: NearyConfigType) {
         previousData = newData
       }
     }
-  }
+  }, baseOptions.throttleDelay)
 
-  if (elements) {
-    if (enabled) {
-      const throttleProximity = throttle(proximity, 100)
-      document.addEventListener('mousemove', throttleProximity)
-      return () => document.removeEventListener('mousemove', throttleProximity)
-    } else {
-      if (onProximity) {
-        onProximity(
-          new Array(elements.length).fill(setDefaultProximity(format))
-        )
+  const onResizeThrottled = throttle(() => {
+    if (elementsDebugTarget && elementsDebugTarget.length > 0) {
+      elementsDebugTarget.forEach((element) => {
+        element.remove()
+      })
+      elementsDebugTarget = setDebug(elementsSetted)
+    }
+  }, 100)
+
+  /**
+   * Boot Neary
+   */
+  const boot = () => {
+    if (baseOptions.enabled) {
+      buildTargets()
+      if (elementsSetted && elementsSetted.length > 0) {
+        document.addEventListener('mousemove', onMoveThrottled, {
+          passive: true
+        })
+      }
+      if (elementsDebugTarget && elementsDebugTarget.length > 0) {
+        window.addEventListener('resize', onResizeThrottled, {
+          passive: true
+        })
       }
     }
+  }
+
+  /**
+   * Reboot Neary with new targets or options or both
+   * @param newTargets
+   * @param newOptions
+   */
+  const reboot = (
+    newTargets?: NearyTargetsType | NearyTargetsType[],
+    newOptions?: NearyConfigType
+  ) => {
+    newTargets = newTargets
+      ? !Array.isArray(newTargets)
+        ? [newTargets]
+        : newTargets
+      : undefined
+    if (newTargets && !areTargetsEqual(newTargets, storedTargets)) {
+      targets = newTargets
+    }
+    if (newOptions && !areOptionsEqual(newOptions, baseOptions)) {
+      baseOptions = mergeOptions(baseOptions, newOptions)
+    }
+    kill()
+    boot()
+  }
+
+  /**
+   * Kill Neary instance and clear stored values
+   */
+  const kill = () => {
+    if (elementsSetted && elementsSetted.length > 0) {
+      document.removeEventListener('mousemove', onMoveThrottled)
+    }
+    if (elementsDebugTarget && elementsDebugTarget.length > 0) {
+      document.removeEventListener('resize', onResizeThrottled)
+      elementsDebugTarget.forEach((element) => {
+        element.remove()
+      })
+    }
+    previousData = []
+    elements = []
+    elementsSetted = []
+    elementsDebugTarget = undefined
+  }
+
+  boot()
+
+  return {
+    kill,
+    reboot,
+    getElements: () => ({
+      targets: elementsSetted,
+      debug: elementsDebugTarget
+    })
   }
 }
 
