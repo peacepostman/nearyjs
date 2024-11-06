@@ -1,8 +1,6 @@
-import {
-  NearyResponseType,
-  NearyTargetDistanceType,
-  NearyTargetsType
-} from './Neary'
+import { NearyResponseType } from './Neary'
+
+import { NearyTargetDistanceType, NearyTargetsType } from './Targets'
 
 export type NearyFormatType = 'boolean' | 'percentage'
 export type NearyConfigType = {
@@ -13,7 +11,7 @@ export type NearyConfigType = {
   /**
    * Throttle delay - Default value is 100ms
    */
-  throttleDelay: number
+  delay: number
   /**
    * Enable debug mode
    */
@@ -46,7 +44,7 @@ export const defaultOptions: NearyConfigType = {
   enabled: true,
   format: 'boolean',
   debug: false,
-  throttleDelay: 100,
+  delay: 100,
   onProximity: () => {}
 }
 

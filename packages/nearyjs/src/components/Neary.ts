@@ -133,7 +133,7 @@ function Neary({
         previousData = newData
       }
     }
-  }, baseOptions.throttleDelay)
+  }, baseOptions.delay)
 
   const onResizeThrottled = throttle(() => {
     if (elementsDebugTarget && elementsDebugTarget.length > 0) {

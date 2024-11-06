@@ -39,33 +39,69 @@ export function setProximity(
     }
   }
 
-  return convertProximityToPercentage({ proximity, rect, rectDistance, cursor })
+  return setPercentage({ proximity, rectDistance, cursor })
 }
 
-function convertProximityToPercentage({
+function setPercentage({
   proximity,
-  rect,
   rectDistance: { left, top, right, bottom },
-  cursor: { x: mouseX, y: mouseY }
+  cursor: { x: cursorX, y: cursorY }
 }: {
   proximity: boolean
-  rect: DOMRect
   rectDistance: { top: number; right: number; bottom: number; left: number }
   cursor: { x: number; y: number }
 }) {
   const windowW = window.innerWidth
   const windowH = window.innerHeight
+
+  const rectWidthCenter = (right - left) / 2
+  const rectHeightCenter = (bottom - top) / 2
+
+  const cursorOnLeft = cursorX <= left + rectWidthCenter
+  const cursorOnRight = cursorX >= right - rectWidthCenter
+  const cursorOnTop = cursorY <= top + rectHeightCenter
+  const cursorOnBottom = cursorY >= bottom - rectHeightCenter
+
+  const cursorDistanceFromLeft = left - cursorX
+  const cursorDistanceFromRight = cursorX - right
+  const cursorDistanceFromTop = top - cursorY
+  const cursorDistanceFromBottom = cursorY - bottom
+
   const leftPercent =
-    mouseY > top && mouseY < bottom && mouseX < left + rect.width / 2
-      ? percentage(mouseX, left)
+    cursorOnLeft &&
+    (!cursorOnBottom ||
+      (cursorOnBottom && cursorDistanceFromLeft >= cursorDistanceFromBottom)) &&
+    (!cursorOnTop ||
+      (cursorOnTop && cursorDistanceFromLeft >= cursorDistanceFromTop))
+      ? percentage(cursorX, left)
       : 0
-  const topPercent = mouseY < top ? percentage(mouseY, top) : 0
+  const topPercent =
+    cursorOnTop &&
+    (!cursorOnRight ||
+      (cursorOnRight && cursorDistanceFromRight <= cursorDistanceFromTop)) &&
+    (!cursorOnLeft ||
+      (cursorOnLeft && cursorDistanceFromLeft <= cursorDistanceFromTop))
+      ? percentage(cursorY, top)
+      : 0
+
   const rightPercent =
-    mouseY > top && mouseY < bottom && mouseX > left + rect.width / 2
-      ? percentage(windowW - mouseX, windowW - right)
+    cursorOnRight &&
+    (!cursorOnBottom ||
+      (cursorOnBottom &&
+        cursorDistanceFromRight >= cursorDistanceFromBottom)) &&
+    (!cursorOnTop ||
+      (cursorOnTop && cursorDistanceFromRight >= cursorDistanceFromTop))
+      ? percentage(windowW - cursorX, windowW - right)
       : 0
+
   const bottomPercent =
-    mouseY > bottom ? percentage(windowH - mouseY, windowH - bottom) : 0
+    cursorOnBottom &&
+    (!cursorOnRight ||
+      (cursorOnRight && cursorDistanceFromRight <= cursorDistanceFromBottom)) &&
+    (!cursorOnLeft ||
+      (cursorOnLeft && cursorDistanceFromLeft <= cursorDistanceFromBottom))
+      ? percentage(windowH - cursorY, windowH - bottom)
+      : 0
 
   const percent = Math.max(leftPercent, topPercent, rightPercent, bottomPercent)
 
