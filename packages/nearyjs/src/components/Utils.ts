@@ -1,5 +1,4 @@
 import { NearyResponseType } from './Neary'
-import { NearyFormatType } from './Options'
 
 /**
  *
@@ -46,7 +45,8 @@ export function throttle(fn: Function, wait: number) {
 }
 
 var nearyID = 0
-export function generateUID() {
+export function generateUID(suffix?: string) {
+  suffix = 'neary_' + (suffix ? suffix : '')
   var id = ++nearyID
-  return String('neary_' + id)
+  return String(suffix + id)
 }

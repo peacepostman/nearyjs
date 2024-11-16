@@ -7,11 +7,12 @@ const nearyInstance = Neary({
     target: '#area-2',
     distance: {
       x: 20,
-      y: 80
+      y: 10
     },
     onProximity({ data, uid, target }) {
       target.innerHTML = `<span class="text-sm text-slate-700 absolute right-2 bottom-2">${data}%</span>`
-    }
+    },
+    context: '#contextt'
   },
   options: {
     format: 'percentage',

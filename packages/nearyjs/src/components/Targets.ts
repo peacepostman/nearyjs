@@ -1,4 +1,8 @@
-import { NearyResponseType, NearySettedElementType } from './Neary'
+import {
+  NearyResponseType,
+  NearySettedElementNode,
+  NearySettedElementType
+} from './Neary'
 import { NearyConfigType } from './Options'
 import { generateUID } from './Utils'
 
@@ -17,6 +21,11 @@ export type NearyTargetsType = {
    * Callback function to call when element is in proximity
    */
   onProximity?: (response: NearyResponseType) => void
+  /**
+   * Context in which the element is located
+   * Default is window
+   */
+  context?: NearyTargetType
 }
 
 export function prepareTargets(
@@ -29,10 +38,12 @@ export function prepareTargets(
       return Array.from(nodes).map((node) => {
         const distance = baseOptions.defaults?.distance || { x: 0, y: 0 }
         const onProximity = baseOptions.defaults?.onProximity || undefined
+        const context = baseOptions.defaults?.context || undefined
         return {
           target: node as Element,
           distance,
-          onProximity
+          onProximity,
+          context
         }
       })
     }
@@ -48,9 +59,13 @@ export function prepareTargets(
 
 export function setTargets(
   elements: NearyTargetsType[]
-): NearySettedElementType {
+): NearySettedElementType[] {
   return elements.map((element) => {
     const target = setTarget(element.target)
+    const context = element.context
+      ? setTarget(element.context, true)
+      : undefined
+    console.log('setTargets', context)
     const uid = generateUID()
     if (target) {
       target.setAttribute('data-neary', '')
@@ -59,7 +74,8 @@ export function setTargets(
     return {
       target,
       uid,
-      distance: setDistance(element.distance)
+      distance: setDistance(element.distance),
+      context
     }
   })
 }
@@ -69,16 +85,24 @@ export function setTargets(
  * @param target
  * @returns
  */
-function setTarget(target?: NearyTargetType): Element | undefined {
+function setTarget(
+  target?: NearyTargetType,
+  isContext?: boolean
+): NearySettedElementNode {
+  console.log('setTarget', target)
   if (typeof target === 'undefined') {
-    throw new Error('NearyJS - Target is required')
+    throw new Error(`NearyJS - ${isContext ? 'Context' : 'Target'} is required`)
   }
   if (typeof target === 'string') {
     var node = document.querySelector(target)
     if (node) {
       return node
     } else {
-      throw new Error('NearyJS - Target not found')
+      throw new Error(
+        `NearyJS - ${
+          isContext ? 'Context' : 'Target'
+        } not found, was looking for "${target}"`
+      )
     }
   }
   if (target instanceof Element) {

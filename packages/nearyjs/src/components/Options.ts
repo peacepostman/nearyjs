@@ -1,6 +1,6 @@
 import { NearyResponseType } from './Neary'
 
-import { NearyTargetDistanceType, NearyTargetsType } from './Targets'
+import { NearyTargetsType } from './Targets'
 
 export type NearyFormatType = 'boolean' | 'percentage'
 export type NearyConfigType = {
@@ -32,10 +32,7 @@ export type NearyConfigType = {
   /**
    * Default targets configuration
    */
-  defaults?: {
-    distance?: NearyTargetDistanceType
-    onProximity?: (response: NearyResponseType) => void
-  }
+  defaults?: Partial<Omit<NearyTargetsType, 'target'>>
 }
 
 export type NearyConfigTypePartial = Partial<NearyConfigType>

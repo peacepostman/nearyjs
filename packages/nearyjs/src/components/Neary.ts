@@ -15,20 +15,23 @@ import type { NearyElementDebugType } from './Debug'
 import { setDebug, setDebugActive } from './Debug'
 import { setProximity } from './Proximity'
 
+export type NearySettedElementNode = Element | undefined
+
 export type NearySettedElementType = {
-  target: Element | undefined
+  target: NearySettedElementNode
   uid: string
   distance: {
     x: number
     y: number
   }
-}[]
+  context: NearySettedElementNode
+}
 
 export type NearyResponseType =
   | {
       data: boolean | number
       uid: string
-      target: Element | undefined
+      target: NearySettedElementNode
     }
   | undefined
 
@@ -42,7 +45,7 @@ export type NearyInstancetype = {
     options?: NearyConfigTypePartial
   }) => void
   getElements: () => {
-    targets: NearySettedElementType
+    targets: NearySettedElementType[]
     debug: NearyElementDebugType
   }
 }
@@ -63,7 +66,7 @@ function Neary({
   let baseOptions = mergeOptions(defaultOptions, options)
   let previousData: NearyResponseType[] = []
   let elements: NearyTargetsType[] | undefined = undefined
-  let elementsSetted: NearySettedElementType = []
+  let elementsSetted: NearySettedElementType[] = []
   let elementsDebugTarget: NearyElementDebugType = undefined
 
   /**
@@ -90,12 +93,13 @@ function Neary({
     if (elements && elementsSetted && elementsSetted.length > 0) {
       for (let index = 0; index < elements.length; index++) {
         const element = elements[index]
-        const { target, distance, uid } = elementsSetted[index]
+        const { target, distance, uid, context } = elementsSetted[index]
 
         if (target) {
           const { proximity, emit: data } = setProximity(
             format,
             target,
+            context,
             distance,
             {
               x,

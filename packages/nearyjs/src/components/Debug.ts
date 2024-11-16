@@ -6,7 +6,7 @@ export type NearyElementDebugType = HTMLElement[] | undefined
  * Add debugs overlay on elements
  * @param elements
  */
-export function setDebug(elementsSetted: NearySettedElementType) {
+export function setDebug(elementsSetted: NearySettedElementType[]) {
   type styleType = Partial<CSSStyleDeclaration> & { [propName: string]: string }
   function css(element: HTMLElement, style: styleType) {
     Object.keys(style).forEach((styleKey: string) => {
