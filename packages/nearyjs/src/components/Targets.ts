@@ -65,7 +65,6 @@ export function setTargets(
     const context = element.context
       ? setTarget(element.context, true)
       : undefined
-    console.log('setTargets', context)
     const uid = generateUID()
     if (target) {
       target.setAttribute('data-neary', '')
@@ -89,7 +88,6 @@ function setTarget(
   target?: NearyTargetType,
   isContext?: boolean
 ): NearySettedElementNode {
-  console.log('setTarget', target)
   if (typeof target === 'undefined') {
     throw new Error(`NearyJS - ${isContext ? 'Context' : 'Target'} is required`)
   }

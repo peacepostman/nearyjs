@@ -17,8 +17,6 @@ const CONFIG_GLOBALS = {
   [emblaPackageJson.name]: kebabToPascalCase(emblaPackageJson.name)
 }
 
-console.log('CONFIG_GLOBALS', CONFIG_GLOBALS)
-
 const CONFIG_EXTERNAL_MODULES = {
   moduleDirectories: ['node_modules']
 }
@@ -32,7 +30,6 @@ const CONFIG_BABEL = {
 const CONFIG_TYPESCRIPT = {
   tsconfig: path.join(__dirname, 'tsconfig.json')
 }
-console.log('CONFIG_TYPESCRIPT', CONFIG_TYPESCRIPT)
 
 function CONFIG_EXTERNAL_MODULE_SUPPRESS(warning, next) {
   if (warning.code === 'INPUT_HOOK_IN_OUTPUT_PLUGIN') return
