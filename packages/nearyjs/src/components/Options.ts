@@ -20,13 +20,15 @@ export type NearyConfigType = {
    * Determine the return type of the function
    * Default is boolean
    *
-   * Boolean: return boolean value for elements. True means in proximity and false means not in proximity
-   * Array: return array of numeric values between 0 and 1 for elements. Zero means not in proximity and 1 means in proximity
+   * boolean: return boolean value for elements. True means in proximity and false means not in proximity
+   * percentage: return array of numeric values between 0 and 100 for elements. Zero means not in proximity and 100 means in proximity
    */
   format: NearyFormatType
   /**
    * Callback function to call when elements proximity state change
    * This function will be executed only if the proximity state of the elements has changed
+   *
+   * Note that if you use different format per target, this function will be called a lot due to percentage update
    */
   onProximity: (values: NearyResponseType[]) => void
   /**

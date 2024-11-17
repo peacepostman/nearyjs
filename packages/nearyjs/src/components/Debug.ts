@@ -30,24 +30,17 @@ export function setDebug(elementSetted: NearySettedElementType) {
   if (target) {
     const ref = {} as unknown as NearyElementDebugNode
     const { width, height, x, y } = target.getBoundingClientRect()
-    const contextScroll = { x: 0, y: 0 }
-    if (context) {
-      contextScroll.x = context.scrollLeft
-      contextScroll.y = context.scrollTop
-    }
+    // const contextScroll = { x: 0, y: 0 }
+    // if (context) {
+    //   contextScroll.x = context.scrollLeft
+    //   contextScroll.y = context.scrollTop
+    // }
     const copy = document.createElement('div')
     copy.setAttribute('data-neary-debug-id', uid)
-    console.log('setDebug', {
-      y,
-      x,
-      scrollY: window.scrollY,
-      scrollX: window.scrollX,
-      distance
-    })
     css(copy, {
       position: 'absolute',
-      top: `${y + window.scrollY - distance.y + contextScroll.y}px`,
-      left: `${x + window.scrollX - distance.x + contextScroll.x}px`,
+      top: `${y + window.scrollY - distance.y}px`,
+      left: `${x + window.scrollX - distance.x}px`,
       width: `${width + distance.x * 2}px`,
       height: `${height + distance.y * 2}px`,
       transition: 'border-color .15s',
@@ -81,9 +74,11 @@ export function setDebugs(
   if (elementsSetted.length > 0) {
     const elementsRef = [] as unknown as NearyElementDebugNode[]
     for (let index = 0; index < elementsSetted.length; index++) {
-      const ref = setDebug(elementsSetted[index])
-      if (ref) {
-        elementsRef.push(ref)
+      if (elementsSetted[index].enabled) {
+        const ref = setDebug(elementsSetted[index])
+        if (ref) {
+          elementsRef.push(ref)
+        }
       }
     }
     return elementsRef
@@ -129,14 +124,6 @@ export function setDebugCoordinates(
       contextScroll.x = context.scrollLeft
       contextScroll.y = context.scrollTop
     }
-
-    console.log('setDebugCoordinates', {
-      x,
-      y,
-      contextScroll,
-      WscrollX: window.scrollX,
-      WscrollY: window.scrollY
-    })
     debugElement.style.top = `${y + window.scrollY - distance.y}px`
     debugElement.style.left = `${x + window.scrollX - distance.x}px`
   }

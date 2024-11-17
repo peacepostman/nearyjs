@@ -179,7 +179,7 @@ function setPercentage({
       (cursorOnTop && cursorDistanceFromRight >= cursorDistanceFromTop))
       ? percentage(
           contextRight - cursorX + window.scrollX,
-          context && contextRight - right
+          context && contextRight < right
             ? contextRight - cursorX + window.scrollX
             : contextRight - right
         )

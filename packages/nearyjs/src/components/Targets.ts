@@ -3,7 +3,7 @@ import {
   NearySettedElementNode,
   NearySettedElementType
 } from './Neary'
-import { NearyConfigType } from './Options'
+import { defaultOptions, NearyConfigType, NearyFormatType } from './Options'
 import { generateUID } from './Utils'
 
 export type NearyTargetDistanceType = number | { x: number; y: number }
@@ -26,6 +26,18 @@ export type NearyTargetsType = {
    * Default is window
    */
   context?: NearyTargetType
+  /**
+   * Determine the return type of the function
+   * Default is boolean
+   *
+   * Boolean: return boolean value for elements. True means in proximity and false means not in proximity
+   * Array: return array of numeric values between 0 and 1 for elements. Zero means not in proximity and 1 means in proximity
+   */
+  format?: NearyFormatType
+  /**
+   * Boolean to enable listener for target, default is true
+   */
+  enabled?: boolean
 }
 
 export function prepareTargets(
@@ -58,7 +70,8 @@ export function prepareTargets(
 }
 
 export function setTargets(
-  elements: NearyTargetsType[]
+  elements: NearyTargetsType[],
+  options: NearyConfigType
 ): NearySettedElementType[] {
   return elements.map((element) => {
     const target = setTarget(element.target)
@@ -66,18 +79,25 @@ export function setTargets(
       ? setTarget(element.context, true)
       : undefined
     const uid = generateUID()
-    const contextUID = generateUID('context_')
+    let contextUID = generateUID('context_')
     if (target) {
       target.setAttribute('data-neary', '')
       target.setAttribute('data-neary-uid', uid)
     }
     if (context) {
-      context.setAttribute('data-neary-context-uid', contextUID)
+      const contextCurrentID = context.getAttribute('data-neary-context-uid')
+      if (!contextCurrentID) {
+        context.setAttribute('data-neary-context-uid', contextUID)
+      } else {
+        contextUID = contextCurrentID
+      }
     }
     return {
       target,
       uid,
-      distance: setDistance(element.distance),
+      distance: setDistance(element.distance || options.defaults?.distance),
+      format: element.format || options.format || defaultOptions.format,
+      enabled: typeof element.enabled !== 'undefined' ? element.enabled : true,
       context,
       contextUID
     }

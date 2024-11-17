@@ -9,8 +9,8 @@ import { NearyResponseType } from './Neary'
  * @returns boolean
  */
 export function areEquals(
-  a1: NearyResponseType[],
-  a2: NearyResponseType[]
+  a1: (boolean | number)[],
+  a2: (boolean | number)[]
 ): boolean {
   return JSON.stringify(a1) === JSON.stringify(a2)
 }

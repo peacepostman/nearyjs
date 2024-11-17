@@ -10,3 +10,4 @@ export {
   NearyConfigTypePartial
 } from './components/Options'
 export { default } from './components/Neary'
+export { areOptionsEqual } from './components/Options'

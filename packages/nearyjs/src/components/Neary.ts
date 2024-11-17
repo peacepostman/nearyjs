@@ -1,6 +1,6 @@
 import { throttle, areEquals } from './Utils'
 
-import type { NearyConfigTypePartial } from './Options'
+import type { NearyConfigTypePartial, NearyFormatType } from './Options'
 import {
   areOptionsEqual,
   areTargetsEqual,
@@ -24,6 +24,8 @@ export type NearySettedElementType = {
     x: number
     y: number
   }
+  format: NearyFormatType
+  enabled: boolean
   context: NearySettedElementNode
   contextUID: string
 }
@@ -33,6 +35,8 @@ export type NearyResponseType =
       data: boolean | number
       uid: string
       target: NearySettedElementNode
+      enabled: boolean
+      format: NearyFormatType
     }
   | undefined
 
@@ -45,10 +49,8 @@ export type NearyInstancetype = {
     targets: NearyTargetsType | NearyTargetsType[] | undefined
     options?: NearyConfigTypePartial
   }) => void
-  getElements: () => {
-    targets: NearySettedElementType[]
-    debug: NearyElementDebugNodes
-  }
+  options: () => NearyConfigTypePartial
+  targets: () => NearyTargetsType[] | undefined
 }
 
 function Neary({
@@ -58,7 +60,7 @@ function Neary({
   /**
    * An array of element on which we must detect proximity
    */
-  targets: NearyTargetsType | NearyTargetsType[] | undefined
+  targets?: NearyTargetsType | NearyTargetsType[]
   /**
    * Neary options
    */
@@ -76,11 +78,19 @@ function Neary({
   const buildTargets = () => {
     elements = prepareTargets(targets, baseOptions)
     if (elements) {
-      elementsSetted = setTargets(elements)
+      elementsSetted = setTargets(elements, baseOptions)
       if (baseOptions.debug) {
         elementsDebugNodes = setDebugs(elementsSetted)
       }
     }
+  }
+
+  const uniqContext = (elementsSetted: NearySettedElementType[]) => {
+    return [
+      ...new Map(
+        elementsSetted.map((item) => [item['contextUID'], item])
+      ).values()
+    ]
   }
 
   /**
@@ -89,51 +99,80 @@ function Neary({
    */
   const onMoveThrottled = throttle((event: MouseEvent) => {
     const { pageX: x, pageY: y } = event
-    const { format, debug, onProximity } = baseOptions
+    const { debug, onProximity } = baseOptions
     const newData: NearyResponseType[] = []
     if (elements && elementsSetted && elementsSetted.length > 0) {
       for (let index = 0; index < elements.length; index++) {
         const element = elements[index]
-        const { target, distance, uid, context } = elementsSetted[index]
-        let toPush: NearyResponseType = {
-          uid,
-          target: undefined,
-          data: false
-        }
-        if (target) {
-          const { proximity, emit: data } = setProximity(
-            format,
-            target,
-            context,
-            distance,
-            {
-              x,
-              y
-            }
-          )
+        const { target, distance, uid, context, enabled, format } =
+          elementsSetted[index]
 
-          if (debug) {
-            setDebugActive(elementsDebugNodes, index, proximity)
-          }
-
-          if (element.onProximity) {
-            element.onProximity({ data, uid, target })
-          }
-
-          toPush = {
+        if (enabled) {
+          let toPush: NearyResponseType = {
             uid,
-            target,
-            data
+            target: undefined,
+            data: false,
+            enabled,
+            format
           }
+          if (target) {
+            const { proximity, emit: data } = setProximity(
+              format,
+              target,
+              context,
+              distance,
+              {
+                x,
+                y
+              }
+            )
+
+            if (debug) {
+              setDebugActive(elementsDebugNodes, index, proximity)
+            }
+
+            if (element.onProximity || baseOptions.defaults?.onProximity) {
+              const emit = {
+                data,
+                uid,
+                target,
+                enabled,
+                format
+              }
+              if (element.onProximity) {
+                element.onProximity(emit)
+              } else if (baseOptions.defaults?.onProximity) {
+                baseOptions.defaults.onProximity(emit)
+              }
+            }
+
+            toPush = {
+              uid,
+              target,
+              data,
+              enabled,
+              format
+            }
+          }
+          newData.push(toPush)
         }
-        newData.push(toPush)
       }
     }
     if (onProximity) {
       /**
        * Only emit global change if data is different from previous data
        */
-      if (previousData.length === 0 || !areEquals(newData, previousData)) {
+      if (
+        previousData.length === 0 ||
+        !areEquals(
+          newData && newData.length > 0
+            ? newData.map((e) => (e ? e.data : 0))
+            : [],
+          previousData && previousData.length > 0
+            ? previousData.map((e) => (e ? e.data : 0))
+            : []
+        )
+      ) {
         onProximity(newData)
         previousData = newData
       }
@@ -181,18 +220,21 @@ function Neary({
         document.addEventListener('mousemove', onMoveThrottled, {
           passive: true
         })
-        elementsSetted.forEach(({ context }) => {
-          if (context) {
-            context.addEventListener('scroll', onContextScroll, {
-              passive: true
+        if (elementsDebugNodes && elementsDebugNodes.length > 0) {
+          window.addEventListener('resize', onResizeThrottled, {
+            passive: true
+          })
+          const contexts = uniqContext(elementsSetted)
+          if (contexts && contexts.length > 0) {
+            contexts.forEach(({ context }) => {
+              if (context) {
+                context.addEventListener('scroll', onContextScroll, {
+                  passive: true
+                })
+              }
             })
           }
-        })
-      }
-      if (elementsDebugNodes && elementsDebugNodes.length > 0) {
-        window.addEventListener('resize', onResizeThrottled, {
-          passive: true
-        })
+        }
       }
     }
   }
@@ -224,13 +266,23 @@ function Neary({
   const kill = () => {
     if (elementsSetted && elementsSetted.length > 0) {
       document.removeEventListener('mousemove', onMoveThrottled)
+
+      if (elementsDebugNodes && elementsDebugNodes.length > 0) {
+        const contexts = uniqContext(elementsSetted)
+        if (contexts && contexts.length > 0) {
+          contexts.forEach(({ context }) => {
+            if (context) {
+              context.removeEventListener('scroll', onContextScroll)
+            }
+          })
+        }
+        document.removeEventListener('resize', onResizeThrottled)
+        elementsDebugNodes.forEach(({ element }) => {
+          element.remove()
+        })
+      }
     }
-    if (elementsDebugNodes && elementsDebugNodes.length > 0) {
-      document.removeEventListener('resize', onResizeThrottled)
-      elementsDebugNodes.forEach(({ element }) => {
-        element.remove()
-      })
-    }
+
     previousData = []
     elements = []
     elementsSetted = []
@@ -242,10 +294,8 @@ function Neary({
   return {
     kill,
     reboot,
-    getElements: () => ({
-      targets: elementsSetted,
-      debug: elementsDebugNodes
-    })
+    options: () => baseOptions,
+    targets: () => elements
   }
 }
 
