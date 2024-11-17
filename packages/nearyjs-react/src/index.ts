@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import Neary from 'neary'
-import {
+import Neary, {
   NearyInstancetype,
   NearyResponseType,
   NearyTargetsType
-} from 'nearyjs/components/Neary'
+} from 'nearyjs'
+
 import {
   areOptionsEqual,
   NearyConfigTypePartial
@@ -46,9 +46,12 @@ export default function useCursorProximity(
 
   useEffect(() => {
     if (canUseDOM() && targets) {
-      const freshAPI = Neary(targets, {
-        ...optionRef.current,
-        onProximity: setResponse
+      const freshAPI = Neary({
+        targets,
+        options: {
+          ...optionRef.current,
+          onProximity: setResponse
+        }
       })
       targetsRef.current = targets
       setNearyAPI(freshAPI)

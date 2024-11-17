@@ -59,7 +59,7 @@ export function mergeOptions<
 }
 
 /**
- * Check if givent parameters are equal
+ * Check if given parameters are equals
  * @param optionsA
  * @param optionsB
  * @returns

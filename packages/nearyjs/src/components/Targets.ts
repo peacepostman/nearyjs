@@ -66,15 +66,20 @@ export function setTargets(
       ? setTarget(element.context, true)
       : undefined
     const uid = generateUID()
+    const contextUID = generateUID('context_')
     if (target) {
       target.setAttribute('data-neary', '')
       target.setAttribute('data-neary-uid', uid)
+    }
+    if (context) {
+      context.setAttribute('data-neary-context-uid', contextUID)
     }
     return {
       target,
       uid,
       distance: setDistance(element.distance),
-      context
+      context,
+      contextUID
     }
   })
 }

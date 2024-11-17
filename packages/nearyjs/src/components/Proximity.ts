@@ -16,9 +16,7 @@ function getProximityContext(context?: Element) {
       left,
       top,
       right,
-      bottom,
-      scrollX: context.scrollLeft,
-      scrollY: context.scrollTop
+      bottom
     }
   }
   return {
@@ -27,9 +25,7 @@ function getProximityContext(context?: Element) {
     left: 0,
     top: 0,
     right: window.innerWidth,
-    bottom: window.innerHeight,
-    scrollX: window.scrollX,
-    scrollY: window.scrollY
+    bottom: window.innerHeight
   }
 }
 
@@ -51,10 +47,10 @@ export function setProximity(
   const {
     width: contextW,
     height: contextH,
-    scrollX,
-    scrollY,
     left: contextLeft,
-    top: contextTop
+    right: contextRight,
+    top: contextTop,
+    bottom: contextBottom
   } = getProximityContext(context)
   const { x: mouseX, y: mouseY } = cursor
 
@@ -65,10 +61,10 @@ export function setProximity(
     if (
       contextLeft &&
       contextTop &&
-      (mouseX < contextLeft ||
-        mouseX > contextLeft + contextW ||
-        mouseY < contextTop ||
-        mouseY > contextTop + contextH)
+      (mouseX < contextLeft + window.scrollX ||
+        mouseX > contextLeft + contextW + window.scrollX ||
+        mouseY < contextTop + window.scrollY ||
+        mouseY > contextTop + contextH + window.scrollY)
     ) {
       return {
         proximity: false,
@@ -87,11 +83,21 @@ export function setProximity(
 
   const { left, top, right, bottom } = rectDistance
 
+  const proximityLeft = context
+    ? mouseX - contextLeft - window.scrollX >= left - contextLeft
+    : mouseX >= left + window.scrollX
+  const proximityTop = context
+    ? mouseY - contextTop - window.scrollY >= top - contextTop
+    : mouseY >= top + window.scrollY
+  const proximityRight = context
+    ? contextRight - mouseX + window.scrollX >= contextRight - right
+    : mouseX <= right + window.scrollX
+  const proximityBottom = context
+    ? contextBottom - mouseY + window.scrollY >= contextBottom - bottom
+    : mouseY <= bottom + window.scrollY
+
   const proximity =
-    mouseX >= left + scrollX &&
-    mouseX <= right + scrollX &&
-    mouseY >= top + scrollY &&
-    mouseY <= bottom + scrollY
+    proximityLeft && proximityTop && proximityRight && proximityBottom
 
   target.setAttribute('data-neary-proximity', proximity.toString())
 
@@ -126,15 +132,15 @@ function setPercentage({
   const rectWidthCenter = (right - left) / 2
   const rectHeightCenter = (bottom - top) / 2
 
-  const cursorOnLeft = cursorX <= left + rectWidthCenter
-  const cursorOnRight = cursorX >= right - rectWidthCenter
-  const cursorOnTop = cursorY <= top + rectHeightCenter
-  const cursorOnBottom = cursorY >= bottom - rectHeightCenter
+  const cursorOnLeft = cursorX - window.scrollX <= left + rectWidthCenter
+  const cursorOnRight = cursorX + window.scrollX >= right - rectWidthCenter
+  const cursorOnTop = cursorY - window.scrollY <= top + rectHeightCenter
+  const cursorOnBottom = cursorY - window.scrollY >= bottom - rectHeightCenter
 
-  const cursorDistanceFromLeft = left - cursorX
-  const cursorDistanceFromRight = cursorX - right
-  const cursorDistanceFromTop = top - cursorY
-  const cursorDistanceFromBottom = cursorY - bottom
+  const cursorDistanceFromLeft = left - cursorX + window.scrollX
+  const cursorDistanceFromRight = cursorX - right - window.scrollX
+  const cursorDistanceFromTop = top - cursorY + window.scrollY
+  const cursorDistanceFromBottom = cursorY - bottom - window.scrollY
 
   const leftPercent =
     cursorOnLeft &&
@@ -142,15 +148,26 @@ function setPercentage({
       (cursorOnBottom && cursorDistanceFromLeft >= cursorDistanceFromBottom)) &&
     (!cursorOnTop ||
       (cursorOnTop && cursorDistanceFromLeft >= cursorDistanceFromTop))
-      ? percentage(cursorX - contextLeft, left - contextLeft)
+      ? percentage(
+          cursorX - contextLeft - window.scrollX,
+          context && left < contextLeft
+            ? cursorX - contextLeft - window.scrollX
+            : left - contextLeft
+        )
       : 0
+
   const topPercent =
     cursorOnTop &&
     (!cursorOnRight ||
       (cursorOnRight && cursorDistanceFromRight <= cursorDistanceFromTop)) &&
     (!cursorOnLeft ||
       (cursorOnLeft && cursorDistanceFromLeft <= cursorDistanceFromTop))
-      ? percentage(cursorY - contextTop, top - contextTop)
+      ? percentage(
+          cursorY - window.scrollY - contextTop,
+          context && top < contextTop
+            ? cursorY - window.scrollY - contextTop
+            : top - contextTop
+        )
       : 0
 
   const rightPercent =
@@ -160,7 +177,12 @@ function setPercentage({
         cursorDistanceFromRight >= cursorDistanceFromBottom)) &&
     (!cursorOnTop ||
       (cursorOnTop && cursorDistanceFromRight >= cursorDistanceFromTop))
-      ? percentage(contextRight - cursorX, contextRight - right)
+      ? percentage(
+          contextRight - cursorX + window.scrollX,
+          context && contextRight - right
+            ? contextRight - cursorX + window.scrollX
+            : contextRight - right
+        )
       : 0
 
   const bottomPercent =
@@ -169,7 +191,12 @@ function setPercentage({
       (cursorOnRight && cursorDistanceFromRight <= cursorDistanceFromBottom)) &&
     (!cursorOnLeft ||
       (cursorOnLeft && cursorDistanceFromLeft <= cursorDistanceFromBottom))
-      ? percentage(contextBottom - cursorY, contextBottom - bottom)
+      ? percentage(
+          contextBottom - cursorY + window.scrollY,
+          context && contextBottom < bottom
+            ? contextBottom - cursorY + window.scrollY
+            : contextBottom - bottom
+        )
       : 0
 
   const percent = Math.max(leftPercent, topPercent, rightPercent, bottomPercent)

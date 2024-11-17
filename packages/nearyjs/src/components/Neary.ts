@@ -11,8 +11,8 @@ import {
 import type { NearyTargetsType } from './Targets'
 import { prepareTargets, setTargets } from './Targets'
 
-import type { NearyElementDebugType } from './Debug'
-import { setDebug, setDebugActive } from './Debug'
+import type { NearyElementDebugNodes, NearyElementDebugType } from './Debug'
+import { setDebugs, setDebugActive, setDebugCoordinates } from './Debug'
 import { setProximity } from './Proximity'
 
 export type NearySettedElementNode = Element | undefined
@@ -25,6 +25,7 @@ export type NearySettedElementType = {
     y: number
   }
   context: NearySettedElementNode
+  contextUID: string
 }
 
 export type NearyResponseType =
@@ -46,7 +47,7 @@ export type NearyInstancetype = {
   }) => void
   getElements: () => {
     targets: NearySettedElementType[]
-    debug: NearyElementDebugType
+    debug: NearyElementDebugNodes
   }
 }
 
@@ -67,7 +68,7 @@ function Neary({
   let previousData: NearyResponseType[] = []
   let elements: NearyTargetsType[] | undefined = undefined
   let elementsSetted: NearySettedElementType[] = []
-  let elementsDebugTarget: NearyElementDebugType = undefined
+  let elementsDebugNodes: NearyElementDebugNodes = undefined
 
   /**
    * Build targets once
@@ -77,7 +78,7 @@ function Neary({
     if (elements) {
       elementsSetted = setTargets(elements)
       if (baseOptions.debug) {
-        elementsDebugTarget = setDebug(elementsSetted)
+        elementsDebugNodes = setDebugs(elementsSetted)
       }
     }
   }
@@ -94,7 +95,11 @@ function Neary({
       for (let index = 0; index < elements.length; index++) {
         const element = elements[index]
         const { target, distance, uid, context } = elementsSetted[index]
-
+        let toPush: NearyResponseType = {
+          uid,
+          target: undefined,
+          data: false
+        }
         if (target) {
           const { proximity, emit: data } = setProximity(
             format,
@@ -108,24 +113,20 @@ function Neary({
           )
 
           if (debug) {
-            setDebugActive(elementsDebugTarget, index, proximity)
+            setDebugActive(elementsDebugNodes, index, proximity)
           }
 
           if (element.onProximity) {
             element.onProximity({ data, uid, target })
           }
-          newData.push({
+
+          toPush = {
             uid,
             target,
             data
-          })
-        } else {
-          newData.push({
-            uid,
-            target: undefined,
-            data: false
-          })
+          }
         }
+        newData.push(toPush)
       }
     }
     if (onProximity) {
@@ -140,13 +141,35 @@ function Neary({
   }, baseOptions.delay)
 
   const onResizeThrottled = throttle(() => {
-    if (elementsDebugTarget && elementsDebugTarget.length > 0) {
-      elementsDebugTarget.forEach((element) => {
+    if (elementsDebugNodes && elementsDebugNodes.length > 0) {
+      elementsDebugNodes.forEach(({ element }) => {
         element.remove()
       })
-      elementsDebugTarget = setDebug(elementsSetted)
+      elementsDebugNodes = setDebugs(elementsSetted)
     }
   }, 100)
+
+  const onContextScroll = throttle((e: Event) => {
+    const contextUID = (e.target as HTMLElement).getAttribute(
+      'data-neary-context-uid'
+    )
+    if (elementsDebugNodes && elementsDebugNodes.length > 0) {
+      elementsDebugNodes.forEach(({ context }, index) => {
+        if (context) {
+          const elementContextUID = context.getAttribute(
+            'data-neary-context-uid'
+          )
+          if (contextUID === elementContextUID) {
+            elementsDebugNodes = setDebugCoordinates(
+              elementsSetted,
+              elementsDebugNodes,
+              index
+            )
+          }
+        }
+      })
+    }
+  }, 50)
 
   /**
    * Boot Neary
@@ -158,8 +181,15 @@ function Neary({
         document.addEventListener('mousemove', onMoveThrottled, {
           passive: true
         })
+        elementsSetted.forEach(({ context }) => {
+          if (context) {
+            context.addEventListener('scroll', onContextScroll, {
+              passive: true
+            })
+          }
+        })
       }
-      if (elementsDebugTarget && elementsDebugTarget.length > 0) {
+      if (elementsDebugNodes && elementsDebugNodes.length > 0) {
         window.addEventListener('resize', onResizeThrottled, {
           passive: true
         })
@@ -195,16 +225,16 @@ function Neary({
     if (elementsSetted && elementsSetted.length > 0) {
       document.removeEventListener('mousemove', onMoveThrottled)
     }
-    if (elementsDebugTarget && elementsDebugTarget.length > 0) {
+    if (elementsDebugNodes && elementsDebugNodes.length > 0) {
       document.removeEventListener('resize', onResizeThrottled)
-      elementsDebugTarget.forEach((element) => {
+      elementsDebugNodes.forEach(({ element }) => {
         element.remove()
       })
     }
     previousData = []
     elements = []
     elementsSetted = []
-    elementsDebugTarget = undefined
+    elementsDebugNodes = undefined
   }
 
   boot()
@@ -214,7 +244,7 @@ function Neary({
     reboot,
     getElements: () => ({
       targets: elementsSetted,
-      debug: elementsDebugTarget
+      debug: elementsDebugNodes
     })
   }
 }
