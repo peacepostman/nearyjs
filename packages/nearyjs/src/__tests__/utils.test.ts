@@ -8,9 +8,6 @@ import {
 describe('Utils - areEquals', () => {
   it('should return true if two arrays of numbers are equal', () => {
     expect(areEquals([1, 2, 3], [1, 2, 3])).toBe(true)
-    expect(areEquals([1, 2, 3], [1, 2, 4])).toBe(false)
-    expect(areEquals([false, true], [false, true])).toBe(true)
-    expect(areEquals([false, false, false], [true, true, true])).toBe(false)
   })
 
   it('should return false if two arrays of numbers are not equal', () => {
