@@ -1,5 +1,5 @@
-import nearyjs from 'nearyjs'
-export { nearyjs }
+import Neary from 'nearyjs'
+export { Neary }
 export { UseNearyType } from './components/useNearySingle'
 export { useNearySingle } from './components/useNearySingle'
 export { useNeary } from './components/useNeary'

@@ -1,23 +1,20 @@
 import { NearyInstancetype } from 'nearyjs'
-import * as React from 'react'
+import React, { createContext, useEffect, useContext } from 'react'
 
-export const NearyInstanceContext = React.createContext<
+export const NearyInstanceContext = createContext<
   NearyInstancetype | undefined
 >(undefined)
 
 export const useNearyInstance = (neary?: NearyInstancetype) => {
-  const instance = React.useContext(NearyInstanceContext)
-
+  const instance = useContext(NearyInstanceContext)
   if (neary) {
     return neary
   }
-
   if (!instance) {
     throw new Error(
       'No NearyJS instance set, you need to use NearyProvider to set one'
     )
   }
-
   return instance
 }
 
@@ -30,7 +27,7 @@ export const NearyProvider = ({
   instance,
   children
 }: NearyProviderProps): React.JSX.Element => {
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       instance.kill()
     }

@@ -17,14 +17,6 @@ export type NearyConfigType = {
    */
   debug: boolean
   /**
-   * Determine the return type of the function
-   * Default is boolean
-   *
-   * boolean: return boolean value for elements. True means in proximity and false means not in proximity
-   * percentage: return array of numeric values between 0 and 100 for elements. Zero means not in proximity and 100 means in proximity
-   */
-  format: NearyFormatType
-  /**
    * Callback function to call when elements proximity state change
    * This function will be executed only if the proximity state of the elements has changed
    *
@@ -41,7 +33,6 @@ export type NearyConfigTypePartial = Partial<NearyConfigType>
 
 export const defaultOptions: NearyConfigType = {
   enabled: true,
-  format: 'boolean',
   debug: false,
   delay: 100,
   onProximity: () => {}

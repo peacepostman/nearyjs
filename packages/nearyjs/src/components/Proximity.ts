@@ -1,4 +1,4 @@
-import { NearySettedElementType } from './Neary'
+import { NearySettedElementType } from './Targets'
 import { NearyFormatType } from './Options'
 
 /**
@@ -37,13 +37,19 @@ function getProximityContext(context?: Element) {
  * @param cursor
  * @returns
  */
-export function setProximity(
-  format: NearyFormatType,
-  target: Element,
-  context: NearySettedElementType['context'],
-  distance: { x: number; y: number },
+export function setProximity({
+  format,
+  target,
+  context,
+  distance,
+  cursor
+}: {
+  format: NearyFormatType
+  target: Element
+  context: NearySettedElementType['context']
+  distance: { x: number; y: number }
   cursor: { x: number; y: number }
-) {
+}) {
   const {
     width: contextW,
     height: contextH,

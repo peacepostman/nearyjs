@@ -21,13 +21,15 @@ export default [
         format: FOLDERS.CJS,
         strict: true,
         sourcemap: true,
-        exports: 'auto'
+
+        exports: 'named'
       },
       {
         file: createBuildPath(packageJson, FOLDERS.ESM),
         format: FOLDERS.ESM,
         strict: true,
-        sourcemap: true
+        sourcemap: true,
+        exports: 'named'
       },
       {
         file: createBuildPath(packageJson, FOLDERS.UMD),
@@ -35,7 +37,8 @@ export default [
         strict: true,
         sourcemap: false,
         name: kebabToPascalCase(packageJson.name),
-        plugins: [terser()]
+        plugins: [terser()],
+        exports: 'named'
       }
     ],
     plugins: [

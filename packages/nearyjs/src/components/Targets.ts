@@ -1,13 +1,20 @@
+import { NearyResponseType } from './Neary'
 import {
-  NearyResponseType,
-  NearySettedElementNode,
-  NearySettedElementType
-} from './Neary'
-import { defaultOptions, NearyConfigType, NearyFormatType } from './Options'
+  defaultOptions,
+  NearyConfigType,
+  NearyConfigTypePartial,
+  NearyFormatType
+} from './Options'
 import { generateUID } from './Utils'
 
 export type NearyTargetDistanceType = number | { x: number; y: number }
 export type NearyTargetType = Element | string
+export type NearyTargetOnProximityType = NearyResponseType & {
+  /**
+   * Remove listener from element leading to enable set to false
+   */
+  unsubscribe(): void
+}
 export type NearyTargetsType = {
   /**
    * A node ref
@@ -20,7 +27,7 @@ export type NearyTargetsType = {
   /**
    * Callback function to call when element is in proximity
    */
-  onProximity?: (response: NearyResponseType) => void
+  onProximity?: (response: NearyTargetOnProximityType) => void
   /**
    * Context in which the element is located
    * Default is window
@@ -40,9 +47,24 @@ export type NearyTargetsType = {
   enabled?: boolean
 }
 
+export type NearySettedElementNode = Element
+
+export type NearySettedElementType = {
+  target: NearySettedElementNode
+  uid: string
+  distance: {
+    x: number
+    y: number
+  }
+  format: NearyFormatType
+  enabled: boolean
+  context: NearySettedElementNode | undefined
+  contextUID: string
+}
+
 export function prepareTargets(
   targets: NearyTargetsType[] | NearyTargetsType | undefined,
-  baseOptions: NearyConfigType
+  baseOptions: NearyConfigTypePartial
 ): NearyTargetsType[] | undefined {
   function setElementFallback() {
     const nodes = document.querySelectorAll('[data-neary]')
@@ -71,37 +93,46 @@ export function prepareTargets(
 
 export function setTargets(
   elements: NearyTargetsType[],
-  options: NearyConfigType
+  options: NearyConfigTypePartial
 ): NearySettedElementType[] {
-  return elements.map((element) => {
+  const setted = []
+  for (const element of elements) {
     const target = setTarget(element.target)
-    const context = element.context
-      ? setTarget(element.context, true)
-      : undefined
-    const uid = generateUID()
-    let contextUID = generateUID('context_')
     if (target) {
-      target.setAttribute('data-neary', '')
-      target.setAttribute('data-neary-uid', uid)
-    }
-    if (context) {
-      const contextCurrentID = context.getAttribute('data-neary-context-uid')
-      if (!contextCurrentID) {
-        context.setAttribute('data-neary-context-uid', contextUID)
-      } else {
-        contextUID = contextCurrentID
+      const context = element.context
+        ? setTarget(element.context, true)
+        : undefined
+      const uid = generateUID()
+      let contextUID = generateUID('context_')
+      if (target) {
+        target.setAttribute('data-neary', '')
+        target.setAttribute('data-neary-uid', uid)
       }
+      if (context) {
+        const contextCurrentID = context.getAttribute('data-neary-context-uid')
+        if (!contextCurrentID) {
+          context.setAttribute('data-neary-context-uid', contextUID)
+        } else {
+          contextUID = contextCurrentID
+        }
+      }
+      setted.push({
+        target,
+        uid,
+        distance: setDistance(element.distance || options.defaults?.distance),
+        format: element.format || options.defaults?.format || 'boolean',
+        enabled:
+          typeof element.enabled !== 'undefined' ? element.enabled : true,
+        context,
+        contextUID
+      })
     }
-    return {
-      target,
-      uid,
-      distance: setDistance(element.distance || options.defaults?.distance),
-      format: element.format || options.format || defaultOptions.format,
-      enabled: typeof element.enabled !== 'undefined' ? element.enabled : true,
-      context,
-      contextUID
-    }
-  })
+  }
+
+  if (setted.length === 0) {
+    throw new Error('NearyJS - No targets found')
+  }
+  return setted
 }
 
 /**
@@ -109,10 +140,10 @@ export function setTargets(
  * @param target
  * @returns
  */
-function setTarget(
+export function setTarget(
   target?: NearyTargetType,
   isContext?: boolean
-): NearySettedElementNode {
+): NearySettedElementNode | undefined {
   if (typeof target === 'undefined') {
     throw new Error(`NearyJS - ${isContext ? 'Context' : 'Target'} is required`)
   }
@@ -138,7 +169,7 @@ function setTarget(
  * @param distance
  * @returns
  */
-function setDistance(distance?: NearyTargetDistanceType): {
+export function setDistance(distance?: NearyTargetDistanceType): {
   x: number
   y: number
 } {

@@ -1,16 +1,14 @@
-import { NearySettedElementNode, NearySettedElementType } from './Neary'
+import { NearySettedElementNode, NearySettedElementType } from './Targets'
 
 export type NearyElementDebugType = HTMLElement[] | undefined
 export type NearyElementDebugNode = {
   element: HTMLDivElement
+  uid: string
   context?: NearySettedElementNode
 }
-export type NearyElementDebugNodes =
-  | {
-      element: HTMLDivElement
-      context?: NearySettedElementNode
-    }[]
-  | undefined
+export interface NearyElementDebugNodes {
+  [key: string]: NearyElementDebugNode
+}
 
 type styleType = Partial<CSSStyleDeclaration> & { [propName: string]: string }
 
@@ -25,43 +23,43 @@ function css(element: HTMLElement, style: styleType) {
   })
 }
 
-export function setDebug(elementSetted: NearySettedElementType) {
+export function setDebug(
+  elementSetted: NearySettedElementType
+): NearyElementDebugNode {
   const { distance, target, uid, context } = elementSetted
-  if (target) {
-    const ref = {} as unknown as NearyElementDebugNode
-    const { width, height, x, y } = target.getBoundingClientRect()
-    // const contextScroll = { x: 0, y: 0 }
-    // if (context) {
-    //   contextScroll.x = context.scrollLeft
-    //   contextScroll.y = context.scrollTop
-    // }
-    const copy = document.createElement('div')
-    copy.setAttribute('data-neary-debug-id', uid)
-    css(copy, {
-      position: 'absolute',
-      top: `${y + window.scrollY - distance.y}px`,
-      left: `${x + window.scrollX - distance.x}px`,
-      width: `${width + distance.x * 2}px`,
-      height: `${height + distance.y * 2}px`,
-      transition: 'border-color .15s',
-      borderWidth: '1px',
-      borderStyle: 'dashed',
-      borderColor: 'rgba(239,66,66,.8)',
-      pointerEvents: 'none',
-      boxSizing: 'border-box',
-      zIndex: '99999999999999'
-    })
+  const ref = { uid } as unknown as NearyElementDebugNode
+  const { width, height, x, y } = target.getBoundingClientRect()
+  // const contextScroll = { x: 0, y: 0 }
+  // if (context) {
+  //   contextScroll.x = context.scrollLeft
+  //   contextScroll.y = context.scrollTop
+  // }
+  const copy = document.createElement('div')
+  copy.setAttribute('data-neary-debug-id', uid)
+  css(copy, {
+    position: 'absolute',
+    top: `${y + window.scrollY - distance.y}px`,
+    left: `${x + window.scrollX - distance.x}px`,
+    width: `${width + distance.x * 2}px`,
+    height: `${height + distance.y * 2}px`,
+    transition: 'border-color .15s',
+    borderWidth: '1px',
+    borderStyle: 'dashed',
+    borderColor: 'rgba(239,66,66,.8)',
+    pointerEvents: 'none',
+    boxSizing: 'border-box',
+    zIndex: '99999999999999'
+  })
 
-    ref['element'] = copy
+  ref['element'] = copy
 
-    if (context) {
-      ref['context'] = context
-      context.appendChild(copy)
-    } else {
-      document.body.appendChild(copy)
-    }
-    return ref
+  if (context) {
+    ref['context'] = context
+    context.appendChild(copy)
+  } else {
+    document.body.appendChild(copy)
   }
+  return ref
 }
 
 /**
@@ -71,33 +69,29 @@ export function setDebug(elementSetted: NearySettedElementType) {
 export function setDebugs(
   elementsSetted: NearySettedElementType[]
 ): NearyElementDebugNodes {
-  if (elementsSetted.length > 0) {
-    const elementsRef = [] as unknown as NearyElementDebugNode[]
-    for (let index = 0; index < elementsSetted.length; index++) {
-      if (elementsSetted[index].enabled) {
-        const ref = setDebug(elementsSetted[index])
-        if (ref) {
-          elementsRef.push(ref)
-        }
+  const elementsRef = {} as unknown as NearyElementDebugNodes
+  for (let index = 0; index < elementsSetted.length; index++) {
+    if (elementsSetted[index].enabled) {
+      const ref = setDebug(elementsSetted[index])
+      if (ref) {
+        elementsRef[ref.uid] = ref
       }
     }
-    return elementsRef
-  } else {
-    return undefined
   }
+  return elementsRef
 }
 
 export function setDebugActive(
   elementsDebugNodes: NearyElementDebugNodes,
-  index: number,
+  uid: string,
   proximity: boolean
 ) {
   if (
     elementsDebugNodes &&
-    elementsDebugNodes[index] &&
-    elementsDebugNodes[index].element
+    elementsDebugNodes[uid] &&
+    elementsDebugNodes[uid].element
   ) {
-    elementsDebugNodes[index].element.style.borderColor = proximity
+    elementsDebugNodes[uid].element.style.borderColor = proximity
       ? 'rgba(66,239,66,.8)'
       : 'rgba(239,66,66,.8)'
   }
@@ -106,18 +100,19 @@ export function setDebugActive(
 export function setDebugCoordinates(
   elementsSetted: NearySettedElementType[],
   elementsDebugNodes: NearyElementDebugNodes,
-  index: number
+  uid: string
 ) {
+  const index = elementsSetted.findIndex((item) => item.uid === uid)
   if (
     elementsSetted &&
     elementsSetted[index] &&
     elementsSetted[index].target &&
     elementsDebugNodes &&
-    elementsDebugNodes[index] &&
-    elementsDebugNodes[index].element
+    elementsDebugNodes[uid] &&
+    elementsDebugNodes[uid].element
   ) {
     const { target, distance, context } = elementsSetted[index]
-    const debugElement = elementsDebugNodes[index].element
+    const debugElement = elementsDebugNodes[uid].element
     const { x, y } = target.getBoundingClientRect()
     const contextScroll = { x: 0, y: 0 }
     if (context) {
@@ -128,4 +123,29 @@ export function setDebugCoordinates(
     debugElement.style.left = `${x + window.scrollX - distance.x}px`
   }
   return elementsDebugNodes
+}
+
+export function setDebugContextListener(
+  elementsSetted: NearySettedElementType[],
+  fn: (e: Event) => void,
+  method: 'add' | 'remove'
+) {
+  const contexts = [
+    ...new Map(
+      elementsSetted.map((item) => [item['contextUID'], item])
+    ).values()
+  ]
+  if (contexts && contexts.length > 0) {
+    contexts.forEach(({ context }) => {
+      if (context) {
+        context[`${method}EventListener`](
+          'scroll',
+          fn,
+          method === 'add' && {
+            passive: true
+          }
+        )
+      }
+    })
+  }
 }

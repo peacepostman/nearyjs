@@ -44,6 +44,10 @@ export function throttle(fn: Function, wait: number) {
   }
 }
 
+export function isEmpty(obj: any) {
+  return Object.keys(obj).length === 0
+}
+
 var nearyID = 0
 export function generateUID(suffix?: string) {
   suffix = 'neary_' + (suffix ? suffix : '')

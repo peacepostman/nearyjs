@@ -1,9 +1,7 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo } from 'react'
 import { useNeary } from 'nearyjs-react'
 
 export default function Scrollable() {
-  const [enabled, setEnabled] = useState(true)
-
   const setNeary = useNeary({
     distance: 20,
     context: '[data-context]',
@@ -26,7 +24,7 @@ export default function Scrollable() {
     distance: useMemo(() => ({ x: 40, y: 10 }), []),
     context: '[data-context]',
     format: 'percentage',
-    onProximity({ data, target }) {
+    onProximity({ data, target, unsubscribe }) {
       target.innerHTML = data.toString() + '%'
       if (data < 60) {
         target.classList.remove('bg-green-100')
@@ -42,10 +40,14 @@ export default function Scrollable() {
         target.classList.remove('bg-slate-200')
         target.classList.remove('bg-green-100')
         target.classList.add('bg-green-600')
-        setEnabled(false)
+        unsubscribe()
       }
     },
-    enabled
+    /**
+     * You can use a useState here or use unsubscribe to disable the target upon proximity
+     * in order to avoid a react render
+     */
+    enabled: true
   })
 
   const boxClassName =

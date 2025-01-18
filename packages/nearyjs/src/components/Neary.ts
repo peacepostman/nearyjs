@@ -1,4 +1,4 @@
-import { throttle, areEquals } from './Utils'
+import { throttle, areEquals, isEmpty } from './Utils'
 
 import type { NearyConfigTypePartial, NearyFormatType } from './Options'
 import {
@@ -8,37 +8,30 @@ import {
   mergeOptions
 } from './Options'
 
-import type { NearyTargetsType } from './Targets'
+import type {
+  NearySettedElementNode,
+  NearySettedElementType,
+  NearyTargetOnProximityType,
+  NearyTargetsType
+} from './Targets'
 import { prepareTargets, setTargets } from './Targets'
 
-import type { NearyElementDebugNodes, NearyElementDebugType } from './Debug'
-import { setDebugs, setDebugActive, setDebugCoordinates } from './Debug'
+import {
+  setDebugs,
+  setDebugActive,
+  setDebugCoordinates,
+  setDebugContextListener,
+  NearyElementDebugNodes
+} from './Debug'
 import { setProximity } from './Proximity'
 
-export type NearySettedElementNode = Element | undefined
-
-export type NearySettedElementType = {
-  target: NearySettedElementNode
+export type NearyResponseType = {
   uid: string
-  distance: {
-    x: number
-    y: number
-  }
-  format: NearyFormatType
+  target: NearySettedElementNode
   enabled: boolean
-  context: NearySettedElementNode
-  contextUID: string
+  format: NearyFormatType
+  data: number | boolean
 }
-
-export type NearyResponseType =
-  | {
-      data: boolean | number
-      uid: string
-      target: NearySettedElementNode
-      enabled: boolean
-      format: NearyFormatType
-    }
-  | undefined
 
 export type NearyInstancetype = {
   kill: () => void
@@ -70,7 +63,7 @@ function Neary({
   let previousData: NearyResponseType[] = []
   let elements: NearyTargetsType[] | undefined = undefined
   let elementsSetted: NearySettedElementType[] = []
-  let elementsDebugNodes: NearyElementDebugNodes = undefined
+  let elementsDebugNodes: NearyElementDebugNodes | undefined = undefined
 
   /**
    * Build targets once
@@ -79,18 +72,10 @@ function Neary({
     elements = prepareTargets(targets, baseOptions)
     if (elements) {
       elementsSetted = setTargets(elements, baseOptions)
-      if (baseOptions.debug) {
+      if (baseOptions.debug && elementsSetted && elementsSetted.length > 0) {
         elementsDebugNodes = setDebugs(elementsSetted)
       }
     }
-  }
-
-  const uniqContext = (elementsSetted: NearySettedElementType[]) => {
-    return [
-      ...new Map(
-        elementsSetted.map((item) => [item['contextUID'], item])
-      ).values()
-    ]
   }
 
   /**
@@ -110,49 +95,57 @@ function Neary({
         if (enabled) {
           let toPush: NearyResponseType = {
             uid,
-            target: undefined,
+            target,
             data: false,
             enabled,
             format
           }
-          if (target) {
-            const { proximity, emit: data } = setProximity(
-              format,
-              target,
-              context,
-              distance,
-              {
-                x,
-                y
-              }
-            )
-
-            if (debug) {
-              setDebugActive(elementsDebugNodes, index, proximity)
+          const { proximity, emit: data } = setProximity({
+            format,
+            target,
+            context,
+            distance,
+            cursor: {
+              x,
+              y
             }
+          })
 
-            if (element.onProximity || baseOptions.defaults?.onProximity) {
-              const emit = {
-                data,
-                uid,
-                target,
-                enabled,
-                format
-              }
-              if (element.onProximity) {
-                element.onProximity(emit)
-              } else if (baseOptions.defaults?.onProximity) {
-                baseOptions.defaults.onProximity(emit)
-              }
-            }
+          if (debug && elementsDebugNodes && !isEmpty(elementsDebugNodes)) {
+            setDebugActive(elementsDebugNodes, uid, proximity)
+          }
 
-            toPush = {
+          if (element.onProximity || baseOptions.defaults?.onProximity) {
+            const emit: NearyTargetOnProximityType = {
+              data,
               uid,
               target,
-              data,
               enabled,
-              format
+              format,
+              unsubscribe: () => {
+                if (elements) {
+                  const updatedElements = [...elements]
+                  updatedElements[index] = {
+                    ...updatedElements[index],
+                    enabled: false
+                  }
+                  reboot({ targets: updatedElements })
+                }
+              }
             }
+            if (element.onProximity) {
+              element.onProximity(emit)
+            } else if (baseOptions.defaults?.onProximity) {
+              baseOptions.defaults.onProximity(emit)
+            }
+          }
+
+          toPush = {
+            uid,
+            target,
+            data,
+            enabled,
+            format
           }
           newData.push(toPush)
         }
@@ -180,8 +173,8 @@ function Neary({
   }, baseOptions.delay)
 
   const onResizeThrottled = throttle(() => {
-    if (elementsDebugNodes && elementsDebugNodes.length > 0) {
-      elementsDebugNodes.forEach(({ element }) => {
+    if (elementsDebugNodes && !isEmpty(elementsDebugNodes)) {
+      Object.entries(elementsDebugNodes).forEach(([, { element }]) => {
         element.remove()
       })
       elementsDebugNodes = setDebugs(elementsSetted)
@@ -192,21 +185,23 @@ function Neary({
     const contextUID = (e.target as HTMLElement).getAttribute(
       'data-neary-context-uid'
     )
-    if (elementsDebugNodes && elementsDebugNodes.length > 0) {
-      elementsDebugNodes.forEach(({ context }, index) => {
-        if (context) {
-          const elementContextUID = context.getAttribute(
-            'data-neary-context-uid'
-          )
-          if (contextUID === elementContextUID) {
-            elementsDebugNodes = setDebugCoordinates(
-              elementsSetted,
-              elementsDebugNodes,
-              index
+    if (elementsDebugNodes && !isEmpty(elementsDebugNodes)) {
+      Object.entries(elementsDebugNodes).forEach(
+        ([, { context, uid }], index) => {
+          if (context) {
+            const elementContextUID = context.getAttribute(
+              'data-neary-context-uid'
             )
+            if (contextUID === elementContextUID) {
+              elementsDebugNodes = setDebugCoordinates(
+                elementsSetted,
+                elementsDebugNodes as NearyElementDebugNodes,
+                uid
+              )
+            }
           }
         }
-      })
+      )
     }
   }, 50)
 
@@ -215,26 +210,21 @@ function Neary({
    */
   const boot = () => {
     if (baseOptions.enabled) {
-      buildTargets()
-      if (elementsSetted && elementsSetted.length > 0) {
-        document.addEventListener('mousemove', onMoveThrottled, {
-          passive: true
-        })
-        if (elementsDebugNodes && elementsDebugNodes.length > 0) {
-          window.addEventListener('resize', onResizeThrottled, {
+      try {
+        buildTargets()
+        if (elementsSetted && elementsSetted.length > 0) {
+          document.addEventListener('mousemove', onMoveThrottled, {
             passive: true
           })
-          const contexts = uniqContext(elementsSetted)
-          if (contexts && contexts.length > 0) {
-            contexts.forEach(({ context }) => {
-              if (context) {
-                context.addEventListener('scroll', onContextScroll, {
-                  passive: true
-                })
-              }
+          if (elementsDebugNodes && !isEmpty(elementsDebugNodes)) {
+            window.addEventListener('resize', onResizeThrottled, {
+              passive: true
             })
+            setDebugContextListener(elementsSetted, onContextScroll, 'add')
           }
         }
+      } catch (error) {
+        console.error(error)
       }
     }
   }
@@ -267,17 +257,10 @@ function Neary({
     if (elementsSetted && elementsSetted.length > 0) {
       document.removeEventListener('mousemove', onMoveThrottled)
 
-      if (elementsDebugNodes && elementsDebugNodes.length > 0) {
-        const contexts = uniqContext(elementsSetted)
-        if (contexts && contexts.length > 0) {
-          contexts.forEach(({ context }) => {
-            if (context) {
-              context.removeEventListener('scroll', onContextScroll)
-            }
-          })
-        }
+      if (elementsDebugNodes && !isEmpty(elementsDebugNodes)) {
+        setDebugContextListener(elementsSetted, onContextScroll, 'remove')
         document.removeEventListener('resize', onResizeThrottled)
-        elementsDebugNodes.forEach(({ element }) => {
+        Object.entries(elementsDebugNodes).forEach(([, { element }]) => {
           element.remove()
         })
       }

@@ -3,31 +3,8 @@ import './style.css'
 
 //@ts-ignore
 const nearyInstance = Neary({
-  targets: [
-    {
-      target: '#area-5',
-      distance: {
-        x: 20,
-        y: 10
-      },
-      onProximity({ data, uid, target }) {
-        target.innerHTML = `<span class="text-sm text-slate-700 absolute right-2 bottom-2">${data}%</span>`
-      },
-      context: '#context'
-    }
-    // {
-    //   target: '#area-9',
-    //   distance: {
-    //     x: 5,
-    //     y: 5
-    //   },
-    //   onProximity({ data, uid, target }) {
-    //     target.innerHTML = `<span class="text-sm text-slate-700 absolute right-2 bottom-2">${data}%</span>`
-    //   }
-    // }
-  ],
+  targets: [],
   options: {
-    format: 'percentage',
     debug: true,
     onProximity: (data) => {
       console.log('onProximity::global', data)

@@ -34,7 +34,7 @@ export default [
         globals: CONFIG_GLOBALS_MODULE,
         strict: true,
         sourcemap: true,
-        exports: 'auto',
+        exports: 'named',
         plugins: resolve(CONFIG_EXTERNAL_MODULES)
       },
       {
@@ -43,6 +43,7 @@ export default [
         globals: CONFIG_GLOBALS_MODULE,
         strict: true,
         sourcemap: true,
+        exports: 'named',
         plugins: resolve(CONFIG_EXTERNAL_MODULES)
       }
     ],
@@ -59,6 +60,7 @@ export default [
         globals: CONFIG_GLOBALS_UMD,
         strict: true,
         sourcemap: false,
+        exports: 'named',
         name: kebabToPascalCase(packageJson.name),
         plugins: [resolve(), terser()]
       }
